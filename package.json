@@ -1,0 +1,41 @@
+{
+  "name": "roue-hasard",
+  "version": "1.0.0",
+  "description": "API professionnelle pour une roue de hasard avec rôles admin et utilisateur.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc -p .",
+    "start": "node dist/server.js",
+    "seed": "ts-node src/scripts/seed.ts",
+    "migrate": "ts-node src/scripts/migrate.ts"
+  },
+  "keywords": [
+    "roulette",
+    "mongodb",
+    "express",
+    "typescript"
+  ],
+  "author": "GPT-5.1 Codex",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.5.1",
+    "morgan": "^1.10.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^4.17.21",
+    "@types/morgan": "^1.9.7",
+    "@types/node": "^22.9.0",
+    "@vercel/node": "^3.0.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
+  }
+}
+
