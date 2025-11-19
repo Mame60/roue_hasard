@@ -6,6 +6,11 @@ let app: any = null;
 let dbConnected = false;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Endpoint de test simple
+  if (req.url === "/test" || req.url === "/api/test") {
+    return res.json({ message: "API fonctionne!", url: req.url });
+  }
+
   // Connecter à la base de données une seule fois
   if (!dbConnected) {
     try {
@@ -22,20 +27,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     app = createApp();
   }
 
-  // Adapter les routes : Vercel route /api/admin/... vers cette fonction
-  // On doit ajuster l'URL pour que Express puisse router correctement
-  const originalUrl = req.url || req.originalUrl || "";
-  // Si l'URL commence par /api, on l'enlève car les routes Express sont /admin et /public
-  const path = originalUrl.startsWith("/api") 
-    ? originalUrl.replace(/^\/api/, "") 
-    : originalUrl;
-  req.url = path || "/";
-  req.originalUrl = path || "/";
+  // Vercel passe l'URL sans le préfixe /api
+  // Par exemple: /api/admin/wheel devient /admin/wheel dans req.url
+  // Mais on doit aussi gérer le cas où l'URL complète est passée
+  const url = req.url || "";
+  const path = url.startsWith("/api") ? url.replace(/^\/api/, "") : url;
+  
+  // Créer une copie modifiée de la requête pour Express
+  const expressReq = {
+    ...req,
+    url: path || "/",
+    originalUrl: path || "/",
+    path: path || "/",
+  } as any;
 
   // Passer la requête à Express
   return new Promise<void>((resolve, reject) => {
-    app(req as any, res as any, (err: any) => {
+    app(expressReq, res as any, (err: any) => {
       if (err) {
+        console.error("Erreur Express:", err);
         reject(err);
       } else {
         resolve();
