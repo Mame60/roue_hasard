@@ -10,18 +10,26 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> {
-  // Endpoint de test pour vérifier que la fonction est appelée
+  // Extraire le chemin de la route
   const routeParams = (req.query as any)?.['...'];
-  const testPath = routeParams && Array.isArray(routeParams) 
-    ? routeParams.join('/') 
-    : (req.url || "").replace(/^\/api\//, "");
+  let path = "/";
   
-  if (testPath === "test" || testPath === "health") {
+  if (routeParams && Array.isArray(routeParams)) {
+    path = `/${routeParams.join('/')}`;
+  } else if (req.url) {
+    // Enlever /api du début si présent
+    path = req.url.startsWith("/api") ? req.url.replace(/^\/api/, "") : req.url;
+  }
+
+  // Endpoint de test pour vérifier que la fonction est appelée
+  const cleanPath = path.replace(/^\//, "");
+  if (cleanPath === "test" || cleanPath === "health") {
     return res.json({ 
       message: "API fonctionne!", 
-      path: testPath,
+      path: cleanPath,
       query: req.query,
-      url: req.url 
+      url: req.url,
+      method: req.method
     });
   }
 
@@ -42,19 +50,7 @@ export default async function handler(
     app = createApp();
   }
 
-  // Vercel route /api/* vers cette fonction avec catch-all [...]
-  // req.query contient les paramètres de route dans la clé '...'
-  // Par exemple: /api/admin/wheel → req.query = { '...': ['admin', 'wheel'] }
-  const routeParams = (req.query as any)?.['...'];
-  let path = "/";
-  
-  if (routeParams && Array.isArray(routeParams)) {
-    path = `/${routeParams.join('/')}`;
-  } else if (req.url) {
-    // Fallback si req.url est disponible
-    path = req.url.startsWith("/api") ? req.url.replace(/^\/api/, "") : req.url;
-  }
-
+  // Utiliser le path déjà extrait plus haut
   // S'assurer que le chemin commence par /
   if (!path.startsWith("/")) {
     path = `/${path}`;
