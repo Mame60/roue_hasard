@@ -24,13 +24,14 @@ export default async function handler(
   // Endpoint de test pour vérifier que la fonction est appelée
   const cleanPath = path.replace(/^\//, "");
   if (cleanPath === "test" || cleanPath === "health") {
-    return res.json({ 
+    res.json({ 
       message: "API fonctionne!", 
       path: cleanPath,
       query: req.query,
       url: req.url,
       method: req.method
     });
+    return;
   }
 
   // Connecter à la base de données une seule fois
@@ -56,33 +57,64 @@ export default async function handler(
     path = `/${path}`;
   }
 
-  // Modifier l'URL de la requête pour Express
-  const modifiedReq = Object.assign({}, req, {
+  // Créer une requête Express compatible
+  const expressReq = {
+    ...req,
     url: path,
     originalUrl: path,
     path: path,
-  }) as any;
+    method: req.method || "GET",
+    headers: req.headers || {},
+    body: req.body,
+    query: req.query || {},
+    params: {},
+  } as any;
 
-  // Utiliser app.handle() pour traiter la requête
+  // Créer une réponse Express compatible
+  const expressRes = res as any;
+
+  // Utiliser app comme fonction (Express Application est callable)
   return new Promise<void>((resolve) => {
-    const responseEnded = { value: false };
-    
-    // Intercepter res.end pour savoir quand la réponse est terminée
-    const originalEnd = res.end.bind(res);
-    res.end = function(...args: any[]) {
-      responseEnded.value = true;
+    let finished = false;
+
+    // Intercepter la fin de la réponse
+    const originalEnd = expressRes.end.bind(expressRes);
+    expressRes.end = function(...args: any[]) {
+      if (!finished) {
+        finished = true;
+        resolve();
+      }
       return originalEnd(...args);
     };
 
-    app!.handle(modifiedReq, res as any, (err: any) => {
-      if (err && !responseEnded.value) {
-        console.error("Erreur Express:", err);
-        if (!res.headersSent) {
-          res.status(500).json({ message: "Erreur serveur", error: err.message });
+    // Appeler l'app Express
+    try {
+      (app as any)(expressReq, expressRes, (err: any) => {
+        if (err) {
+          console.error("Erreur Express:", err);
+          if (!finished && !expressRes.headersSent) {
+            finished = true;
+            expressRes.status(500).json({ message: "Erreur serveur", error: err.message });
+            resolve();
+          }
+        } else if (!finished) {
+          // Timeout de sécurité
+          setTimeout(() => {
+            if (!finished) {
+              finished = true;
+              resolve();
+            }
+          }, 1000);
         }
+      });
+    } catch (error) {
+      console.error("Erreur lors de l'appel Express:", error);
+      if (!finished) {
+        finished = true;
+        expressRes.status(500).json({ message: "Erreur serveur", error: String(error) });
+        resolve();
       }
-      resolve();
-    });
+    }
   });
 }
 
