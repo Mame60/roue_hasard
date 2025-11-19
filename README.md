@@ -167,6 +167,21 @@ L'application est prête à être déployée sur Vercel (frontend + backend).
 - Le frontend utilise automatiquement `/api` en production
 - Les variables d'environnement doivent être configurées dans le dashboard Vercel
 
+### Dépannage erreur 404
+
+Si vous obtenez une erreur 404 NOT_FOUND :
+
+1. **Vérifier que le fichier `api/index.ts` existe** à la racine du projet
+2. **Vérifier les variables d'environnement** dans le dashboard Vercel
+3. **Vérifier les logs de build** dans Vercel pour voir s'il y a des erreurs de compilation
+4. **Tester l'endpoint** : `https://votre-domaine.vercel.app/api/health` devrait retourner `{"status":"ok"}`
+5. **Redéployer** : parfois un redéploiement résout le problème
+
+Si le problème persiste, vérifier que :
+- Le dossier `api/` est bien à la racine (pas dans `src/`)
+- Le fichier `vercel.json` est présent à la racine
+- Les dépendances sont installées (Vercel le fait automatiquement)
+
 ## 🔐 Sécurité & évolutions
 
 - ✅ Authentification par nom/mot de passe implémentée

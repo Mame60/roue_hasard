@@ -16,8 +16,8 @@ export const createApp = () => {
     res.json({ status: "ok" });
   });
 
-  app.use("/api/admin", adminRoutes);
-  app.use("/api/public", publicRoutes);
+  app.use("/admin", adminRoutes);
+  app.use("/public", publicRoutes);
 
   app.use(errorHandler);
 

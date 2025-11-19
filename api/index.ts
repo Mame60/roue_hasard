@@ -22,13 +22,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     app = createApp();
   }
 
-  // Wrapper pour convertir VercelRequest/Response en Express Request/Response
-  return new Promise((resolve, reject) => {
+  // Adapter les routes : Vercel route /api/admin/... vers cette fonction
+  // On doit ajuster l'URL pour que Express puisse router correctement
+  const originalUrl = req.url || req.originalUrl || "";
+  // Si l'URL commence par /api, on l'enlève car les routes Express sont /admin et /public
+  const path = originalUrl.startsWith("/api") 
+    ? originalUrl.replace(/^\/api/, "") 
+    : originalUrl;
+  req.url = path || "/";
+  req.originalUrl = path || "/";
+
+  // Passer la requête à Express
+  return new Promise<void>((resolve, reject) => {
     app(req as any, res as any, (err: any) => {
       if (err) {
         reject(err);
       } else {
-        resolve(undefined);
+        resolve();
       }
     });
   });
