@@ -1,16 +1,15 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import express from "express";
 import { createApp } from "../src/app";
 import { connectDatabase } from "../src/config/database";
 
-let app: any = null;
+let app: express.Application | null = null;
 let dbConnected = false;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Endpoint de test simple
-  if (req.url === "/test" || req.url === "/api/test") {
-    return res.json({ message: "API fonctionne!", url: req.url });
-  }
-
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse
+): Promise<void> {
   // Connecter à la base de données une seule fois
   if (!dbConnected) {
     try {
@@ -18,7 +17,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       dbConnected = true;
     } catch (error) {
       console.error("Erreur de connexion MongoDB:", error);
-      return res.status(500).json({ message: "Erreur de connexion à la base de données" });
+      res.status(500).json({ message: "Erreur de connexion à la base de données" });
+      return;
     }
   }
 
@@ -27,29 +27,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     app = createApp();
   }
 
-  // Vercel passe l'URL sans le préfixe /api
-  // Par exemple: /api/admin/wheel devient /admin/wheel dans req.url
-  // Mais on doit aussi gérer le cas où l'URL complète est passée
-  const url = req.url || "";
-  const path = url.startsWith("/api") ? url.replace(/^\/api/, "") : url;
-  
-  // Créer une copie modifiée de la requête pour Express
-  const expressReq = {
-    ...req,
+  // Vercel route /api/* vers cette fonction, donc req.url contient déjà le chemin sans /api
+  // Par exemple: /api/admin/wheel → req.url = /admin/wheel
+  const originalUrl = req.url || "";
+  const path = originalUrl.startsWith("/api") 
+    ? originalUrl.replace(/^\/api/, "") 
+    : originalUrl;
+
+  // Modifier l'URL de la requête pour Express
+  const modifiedReq = Object.assign(req, {
     url: path || "/",
     originalUrl: path || "/",
-    path: path || "/",
-  } as any;
+  });
 
-  // Passer la requête à Express
-  return new Promise<void>((resolve, reject) => {
-    app(expressReq, res as any, (err: any) => {
-      if (err) {
-        console.error("Erreur Express:", err);
-        reject(err);
-      } else {
-        resolve();
-      }
+  // Utiliser app.handle() pour traiter la requête
+  return new Promise<void>((resolve) => {
+    app!.handle(modifiedReq as any, res as any, () => {
+      resolve();
     });
   });
 }
